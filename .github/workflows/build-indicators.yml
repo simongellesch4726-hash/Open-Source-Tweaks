@@ -77,7 +77,7 @@ jobs:
         run: |
           git clone --depth 1 --branch 1.2.4 https://github.com/hbang/Alderis.git Alderis
           cd Alderis
-          make sdk ROOTLESS=1 TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME=rootless
+          make sdk ROOTLESS=1 TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME=rootless FRAMEWORK_OUTPUT_DIR="$(pwd)/.theos/obj/debug/install/Library/Frameworks"
           test -d "${THEOS}/vendor/lib/iphone/rootless/Alderis.framework"
           COLORPICKER="$(find "${THEOS}" -path "*/libcolorpicker.dylib" -print -quit)"
           test -n "${COLORPICKER}"
