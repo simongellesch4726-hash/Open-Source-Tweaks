@@ -46,7 +46,9 @@ jobs:
         if: steps.theos-cache.outputs.cache-hit != 'true'
         run: |
           export THEOS="$GITHUB_WORKSPACE/theos"
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
+          git clone --depth 1 --recursive https://github.com/roothide/theos.git "$THEOS"
+          test -f "$THEOS/makefiles/common.mk"
+          test -x "$THEOS/bin/logos.pl"
           echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
           echo "$GITHUB_WORKSPACE/theos/bin" >> "$GITHUB_PATH"
 
