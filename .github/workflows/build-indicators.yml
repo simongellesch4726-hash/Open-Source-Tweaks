@@ -1,7 +1,10 @@
-name: Build Indicators (iOS 17 RootHide)
+name: Build Indicators — iOS 17 RootHide
 
 on:
   push:
+    branches:
+      - indicators-ios17-roothide
+  pull_request:
     branches:
       - indicators-ios17-roothide
   workflow_dispatch:
@@ -15,134 +18,175 @@ concurrency:
 
 jobs:
   build:
-    name: Build Indicators / iOS 17 / arm64e / RootHide
+    name: Build Indicators / arm64e / RootHide
     runs-on: macos-14
     timeout-minutes: 45
+
     env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      THEOS: ${{ github.workspace }}/theos
+      THEOS_PACKAGE_SCHEME: roothide
       TARGET: iphone:clang:17.5:15.0
       ARCHS: arm64e
-      THEOS_PACKAGE_SCHEME: roothide
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: "16.2"
-      - name: Verify Xcode
+
+      - name: Install RootHide Theos
         run: |
-          xcode-select -p
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
+          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+          echo "$HOME/theos/bin" >> "$GITHUB_PATH"
+
       - name: Install build tools
         run: |
           brew install dpkg ldid-procursus make
-          perl -MCompress::Raw::Zlib -e 'print "Perl OK\n"'
-      - name: Checkout RootHide Theos
-        uses: actions/checkout@v4
-        with:
-          repository: roothide/theos
-          path: theos
-          submodules: recursive
-      - name: Install Tonwalter iOS 17.5 SDK
-        env:
-          THEOS: ${{ github.workspace }}/theos
+          command -v dpkg-deb
+          command -v ldid
+
+      - name: Install iPhoneOS 17.5 SDK
         run: |
           git clone --depth 1 https://github.com/Tonwalter888/iOS-SDKs.git /tmp/ios-sdks
           test -d /tmp/ios-sdks/iPhoneOS17.5.sdk
-          rm -rf "${THEOS}/sdks/iPhoneOS17.5.sdk"
-          cp -a /tmp/ios-sdks/iPhoneOS17.5.sdk "${THEOS}/sdks/iPhoneOS17.5.sdk"
-          test -f "${THEOS}/sdks/iPhoneOS17.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
-          echo "THEOS=${THEOS}" >> "${GITHUB_ENV}"
-      - name: Build libDeusPrefs SDK
-        working-directory: /tmp
+          rm -rf "$THEOS/sdks/iPhoneOS17.5.sdk"
+          cp -a /tmp/ios-sdks/iPhoneOS17.5.sdk "$THEOS/sdks/iPhoneOS17.5.sdk"
+          test -f "$THEOS/sdks/iPhoneOS17.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
+
+      - name: Install libDeusPrefs
         run: |
-          git clone --depth 1 https://github.com/LacertosusRepo/libDeusPrefs.git libDeusPrefs
-          cd libDeusPrefs/source
-          make install-to-theos THEOS="${THEOS}" TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME=roothide
-          test -f "${THEOS}/lib/libDeusPrefs.dylib"
-          test -f "${THEOS}/include/libDeusPrefs.h"
+          git clone --depth 1 https://github.com/LacertosusRepo/libDeusPrefs.git /tmp/libDeusPrefs
+          make -C /tmp/libDeusPrefs/source install-to-theos \
+            THEOS="$THEOS" \
+            TARGET="$TARGET" \
+            ARCHS="$ARCHS"
+          test -f "$THEOS/lib/libDeusPrefs.dylib"
+          test -f "$THEOS/include/libDeusPrefs.h"
+          lipo -archs "$THEOS/lib/libDeusPrefs.dylib" | grep -qw arm64e
+
       - name: Install Alderis SDK and libcolorpicker
         working-directory: /tmp
         run: |
-          curl -L --fail --retry 3 https://github.com/hbang/Alderis/releases/download/1.2.0/alderis_sdk_1.2.zip -o alderis_sdk.zip
+          curl -L --fail --retry 3 \
+            https://github.com/hbang/Alderis/releases/download/1.2.0/alderis_sdk_1.2.zip \
+            -o alderis_sdk.zip
+
           rm -rf alderis-sdk
           mkdir alderis-sdk
           unzip -q alderis_sdk.zip -d alderis-sdk
+
           ALDERIS_DIR="$(find alderis-sdk -type d -name 'Alderis.framework' -print -quit)"
           test -n "$ALDERIS_DIR"
-          mkdir -p "${THEOS}/vendor/lib/iphone/rootless"
-          cp -a "$ALDERIS_DIR" "${THEOS}/vendor/lib/iphone/rootless/"
-          curl -L --fail --retry 3 https://github.com/hbang/Alderis/releases/download/1.2.2/ws.hbang.alderis_1.2.2_iphoneos-arm64.deb -o alderis.deb
+
+          mkdir -p "$THEOS/vendor/lib/iphone/rootless"
+          rm -rf "$THEOS/vendor/lib/iphone/rootless/Alderis.framework"
+          cp -a "$ALDERIS_DIR" "$THEOS/vendor/lib/iphone/rootless/"
+
+          curl -L --fail --retry 3 \
+            https://github.com/hbang/Alderis/releases/download/1.2.2/ws.hbang.alderis_1.2.2_iphoneos-arm64.deb \
+            -o alderis.deb
+
           rm -rf alderis-pkg
           mkdir alderis-pkg
           dpkg-deb -x alderis.deb alderis-pkg
+
           COLORPICKER="$(find alderis-pkg -type f -name 'libcolorpicker.dylib' -print -quit)"
           test -n "$COLORPICKER"
-          cp "$COLORPICKER" "${THEOS}/lib/libcolorpicker.dylib"
-          test -f "${THEOS}/lib/libcolorpicker.dylib"
-          lipo -archs "${THEOS}/lib/libcolorpicker.dylib" | grep -qw arm64e
+
+          cp "$COLORPICKER" "$THEOS/lib/libcolorpicker.dylib"
+          test -f "$THEOS/lib/libcolorpicker.dylib"
+          lipo -archs "$THEOS/lib/libcolorpicker.dylib" | grep -qw arm64e
 
       - name: Install Cephei SDK
         working-directory: /tmp
         run: |
-          curl -L --fail --retry 3 https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip -o cephei_sdk.zip
+          curl -L --fail --retry 3 \
+            https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip \
+            -o cephei_sdk.zip
+
           rm -rf cephei-sdk
           mkdir cephei-sdk
           unzip -q cephei_sdk.zip -d cephei-sdk
-          find cephei-sdk -maxdepth 4 -type d -name '*.framework' -print
+
+          mkdir -p "$THEOS/vendor/lib/iphone/rootless"
+
           for framework in Cephei CepheiPrefs; do
             DIR="$(find cephei-sdk -type d -name "$framework.framework" -print -quit)"
             test -n "$DIR"
-            cp -a "$DIR" "${THEOS}/vendor/lib/iphone/rootless/"
+            rm -rf "$THEOS/vendor/lib/iphone/rootless/$framework.framework"
+            cp -a "$DIR" "$THEOS/vendor/lib/iphone/rootless/"
           done
-          test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
-          test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
 
-      - name: Verify Theos dependencies
+          test -d "$THEOS/vendor/lib/iphone/rootless/Cephei.framework"
+          test -d "$THEOS/vendor/lib/iphone/rootless/CepheiPrefs.framework"
+
+      - name: Verify build environment
         run: |
-          test -d "${THEOS}/vendor/lib/iphone/rootless/Alderis.framework"
-          test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
-          test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
-          test -f "${THEOS}/lib/libDeusPrefs.dylib"
-          test -f "${THEOS}/lib/libcolorpicker.dylib"
-          lipo -archs "${THEOS}/lib/libDeusPrefs.dylib" | grep -qw arm64e
-          lipo -archs "${THEOS}/lib/libcolorpicker.dylib" | grep -qw arm64e
+          test -d "$THEOS/vendor/lib/iphone/rootless/Alderis.framework"
+          test -d "$THEOS/vendor/lib/iphone/rootless/Cephei.framework"
+          test -d "$THEOS/vendor/lib/iphone/rootless/CepheiPrefs.framework"
+          test -f "$THEOS/lib/libDeusPrefs.dylib"
+          test -f "$THEOS/lib/libcolorpicker.dylib"
+
+          echo "THEOS=$THEOS"
+          echo "TARGET=$TARGET"
+          echo "ARCHS=$ARCHS"
+          echo "THEOS_PACKAGE_SCHEME=$THEOS_PACKAGE_SCHEME"
+
       - name: Build Indicators
         working-directory: Indicators
         run: |
           make clean
-          make package FINALPACKAGE=1 THEOS="${THEOS}" TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME="${THEOS_PACKAGE_SCHEME}" STRIP=1
-          ls -lah packages
-          test "$(find packages -maxdepth 1 -type f -name '*.deb' | wc -l | tr -d ' ')" -eq 1
-      - name: Validate package
+          make package FINALPACKAGE=1 \
+            THEOS="$THEOS" \
+            TARGET="$TARGET" \
+            ARCHS="$ARCHS" \
+            THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME" \
+            STRIP=1
+
+          DEB="$(find packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          test -n "$DEB"
+          echo "Built: $DEB"
+
+      - name: Validate .deb
         working-directory: Indicators
-        shell: bash
         run: |
           set -euo pipefail
+
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
-          dpkg-deb -I "${DEB}" > /tmp/control.txt
-          dpkg-deb -c "${DEB}" > /tmp/contents.txt
-          grep -q "Architecture: iphoneos-arm64e" /tmp/control.txt
-          ! grep -qE '(^|[[:space:]])/var/jb([/[:space:]]|$)' /tmp/contents.txt
-          ! grep -R -a -q "/var/jb" /tmp/contents.txt /tmp/control.txt
+          test -f "$DEB"
+
+          ARCH="$(dpkg-deb -f "$DEB" Architecture)"
+          echo "Package architecture: $ARCH"
+          test "$ARCH" = "iphoneos-arm64e"
+
           rm -rf /tmp/indicators-package
           mkdir -p /tmp/indicators-package
-          dpkg-deb -x "${DEB}" /tmp/indicators-package
-          BINARIES="$(find /tmp/indicators-package -type f \( -name '*.dylib' -o -name '*.bundle' \) -print)"
-          test -n "${BINARIES}"
+          dpkg-deb -x "$DEB" /tmp/indicators-package
+
+          if grep -R -a -q "/var/jb" /tmp/indicators-package; then
+            echo "ERROR: package contains /var/jb"
+            exit 1
+          fi
+
+          BINARIES="$(find /tmp/indicators-package -type f \\( -name '*.dylib' -o -name '*.bundle' \\) -print)"
+          test -n "$BINARIES"
+
           while IFS= read -r binary; do
-            if file "${binary}" | grep -q "Mach-O"; then
-              ARCHS_FOUND="$(lipo -archs "${binary}" 2>/dev/null || true)"
-              echo "${ARCHS_FOUND}" | grep -qw arm64e
+            if file "$binary" | grep -q "Mach-O"; then
+              lipo -archs "$binary" | grep -qw arm64e
             fi
-            ! strings "${binary}" | grep -q "/var/jb"
-          done <<< "${BINARIES}"
+          done <<< "$BINARIES"
+
           echo "RootHide arm64e package validation passed."
-      - name: Upload package
-        uses: actions/upload-artifact@v7
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
         with:
           name: Indicators-iOS17-RootHide-arm64e
           path: Indicators/packages/*.deb
