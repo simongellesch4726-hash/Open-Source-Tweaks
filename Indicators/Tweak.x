@@ -34,10 +34,26 @@
   SBRecordingIndicatorView *dndIndicator;
 
 %hook SBRecordingIndicatorViewController
-  -(void)calculateInitialIndicatorPositionAndSize {
-    %orig;
+  // iOS 17 constructs this controller through initForLocation:windowScene:.
+  // Keep all Apple implementation behavior untouched and initialize our views
+  // only after SpringBoard has completed its normal initializer.
+  -(id)initForLocation:(NSInteger)location windowScene:(id)windowScene {
+    id result = %orig(location, windowScene);
+    if(result) {
+      dispatch_async(dispatch_get_main_queue(), ^{
+        [result ir_setupIndicatorsIfNeeded];
+      });
+    }
+    return result;
+  }
 
-    if(!flashlightIndicator) {
+%new
+  -(void)ir_setupIndicatorsIfNeeded {
+    if(flashlightIndicator || !self.view) {
+      return;
+    }
+
+    recordingIndicatorViewController = self;
         //Grab a reference to the view controller
       recordingIndicatorViewController = self;
 
@@ -102,7 +118,7 @@
     }
   }
 
-    //DND state changes arent sent after a respring, so we check once
+    // DND state changes aren't sent after a respring, so we check once
   -(void)viewDidAppear:(BOOL)arg1 {
     %orig;
 
@@ -121,12 +137,13 @@
     }
 
     [connection queryStateWithRequestDetails:requestDetails completionHandler:^(DNDState *state, NSError *error) {
-      if(!error) {
+      if(!error && state && dndIndicator) {
+        CGFloat size = [[self valueForKey:@"_size"] floatValue];
         if([state isActive]) {
-          CGFloat size = [[self valueForKey:@"_size"] floatValue];
           [dndIndicator ir_startShowAnimatorForIndicatorWithSize:size];
+        } else {
+          [dndIndicator ir_startHideAnimatorForIndicator];
         }
-
       } else {
         HBLogError(@"Indicators - Error checking DND status: %@", error);
       }
@@ -181,7 +198,7 @@
 
 %new  //Flashlight updates
   -(void)ir_updateIndicatorForFlashlightState:(NSNotification *)notification {
-    if(showFlashlightIndicator) {
+    if(showFlashlightIndicator && flashlightIndicator) {
       NSDictionary *userInfo = notification.userInfo;
       BOOL state = [userInfo[@"FlashlightValue"] floatValue] > 0;
 
@@ -198,7 +215,7 @@
 
 %new  //VPN updates
   -(void)ir_updateIndicatorForVPNState:(NSNotification *)notification {
-    if(showVPNIndicator) {
+    if(showVPNIndicator && vpnIndicator) {
       BOOL state = [[%c(SBTelephonyManager) sharedTelephonyManager] isUsingVPNConnection];
 
       if(state) {
@@ -214,7 +231,7 @@
 
 %new  //DND updates
   -(void)remoteService:(DNDRemoteServiceConnection *)service didReceiveDoNotDisturbStateUpdate:(DNDStateUpdate *)stateUpdate {
-    if(showDNDIndicator) {
+    if(showDNDIndicator && dndIndicator) {
       BOOL state = [stateUpdate.state isActive];
 
       if(state) {
