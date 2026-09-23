@@ -50,8 +50,17 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/roothide/theos.git "${THEOS}"
           test -f "${THEOS}/makefiles/common.mk"
-          test -x "${THEOS}/bin/logos.pl"
+          test -f "${THEOS}/bin/logos.pl"
           echo "THEOS=${THEOS}" >> "${GITHUB_ENV}"
+
+      - name: Install patched iOS 17.0 SDK
+        run: |
+          git clone --depth 1 https://github.com/itsnebulalol/sdks.git /tmp/ios-sdks
+          test -d /tmp/ios-sdks/iPhoneOS17.0.sdk
+          rm -rf "${THEOS}/sdks/iPhoneOS17.0.sdk"
+          cp -a /tmp/ios-sdks/iPhoneOS17.0.sdk "${THEOS}/sdks/iPhoneOS17.0.sdk"
+          test -f "${THEOS}/sdks/iPhoneOS17.0.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
+          echo "Patched iOS 17.0 SDK installed."
 
       - name: Build libDeusPrefs SDK
         working-directory: /tmp
