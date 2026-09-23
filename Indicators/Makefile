@@ -1,3 +1,10 @@
+# --- roothide + Logos fixes ---
+export THEOS_PACKAGE_SCHEME = roothide
+
+# Do NOT let Logos turn warnings into fatal errors
+Tweak_CFLAGS    += -Wno-error
+Tweak_LOGOSFLAGS += -Wno-error
+
 ifdef SIM
 	export ARCHS = x86_64
 	TARGET = simulator:clang:latest:8.0
