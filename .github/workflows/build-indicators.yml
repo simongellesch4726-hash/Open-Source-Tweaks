@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
 
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.0.1.app/Contents/Developer
+      HOMEBREW_NO_AUTO_UPDATE: 1
       THEOS: ${{ github.workspace }}/theos
       TARGET: iphone:clang:17.0:15.0
       ARCHS: arm64e
@@ -33,34 +33,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Select and verify Xcode
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
+      - name: Verify Xcode
         run: |
-          sudo xcode-select --switch "${DEVELOPER_DIR}"
           xcode-select -p
           xcodebuild -version
-          test -d "${DEVELOPER_DIR}/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.0.sdk"
           xcrun --sdk iphoneos --show-sdk-version
 
       - name: Install build tools
         run: |
-          brew install dpkg
+          brew install dpkg ldid-procursus make
           perl -MCompress::Raw::Zlib -e 'print "Perl OK\\n"'
 
-      - name: Install RootHide Theos
-        run: |
-          git clone --depth 1 https://github.com/roothide/theos.git "${THEOS}"
-          test -f "${THEOS}/makefiles/common.mk"
-          test -f "${THEOS}/bin/logos.pl"
-          echo "THEOS=${THEOS}" >> "${GITHUB_ENV}"
+      - name: Checkout RootHide Theos
+        uses: actions/checkout@v4
+        with:
+          repository: roothide/theos
+          path: theos
+          submodules: recursive
 
-      - name: Install patched iOS 17.0 SDK
+      - name: Install iOS 17.0 SDK into RootHide Theos
+        env:
+          THEOS: ${{ github.workspace }}/theos
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          git clone --depth 1 https://github.com/itsnebulalol/sdks.git /tmp/ios-sdks
-          test -d /tmp/ios-sdks/iPhoneOS17.0.sdk
-          rm -rf "${THEOS}/sdks/iPhoneOS17.0.sdk"
-          cp -a /tmp/ios-sdks/iPhoneOS17.0.sdk "${THEOS}/sdks/iPhoneOS17.0.sdk"
+          cd "${THEOS}"
+          ./bin/install-sdk iPhoneOS17.0
+          test -d "${THEOS}/sdks/iPhoneOS17.0.sdk"
           test -f "${THEOS}/sdks/iPhoneOS17.0.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
-          echo "Patched iOS 17.0 SDK installed."
+          echo "THEOS=${THEOS}" >> "${GITHUB_ENV}"
 
       - name: Build libDeusPrefs SDK
         working-directory: /tmp
@@ -70,7 +75,8 @@ jobs:
           make install-to-theos \
             THEOS="${THEOS}" \
             TARGET="${TARGET}" \
-            ARCHS="${ARCHS}"
+            ARCHS="${ARCHS}" \
+            THEOS_PACKAGE_SCHEME=roothide
           test -f "${THEOS}/lib/libDeusPrefs.dylib"
           test -f "${THEOS}/include/libDeusPrefs.h"
 
@@ -82,7 +88,8 @@ jobs:
           make sdk \
             ROOTLESS=1 \
             TARGET="${TARGET}" \
-            ARCHS="${ARCHS}"
+            ARCHS="${ARCHS}" \
+            THEOS_PACKAGE_SCHEME=roothide
           test -d "${THEOS}/vendor/lib/iphone/rootless/Alderis.framework"
           find "${THEOS}/vendor/lib" -name libcolorpicker.dylib -print -quit | grep .
           COLORPICKER="$(find "${THEOS}" -path "*/libcolorpicker.dylib" -print -quit)"
@@ -99,7 +106,8 @@ jobs:
           make sdk \
             TARGET="${TARGET}" \
             ARCHS="${ARCHS}" \
-            RESPRING=0
+            RESPRING=0 \
+            THEOS_PACKAGE_SCHEME=roothide
           test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
           test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
           mkdir -p "${THEOS}/vendor/lib/iphone/roothide"
