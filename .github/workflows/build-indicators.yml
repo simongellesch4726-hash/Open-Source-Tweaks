@@ -93,16 +93,22 @@ jobs:
           test -f "${THEOS}/lib/libcolorpicker.dylib"
           lipo -archs "${THEOS}/lib/libcolorpicker.dylib" | grep -qw arm64e
 
-      - name: Build Cephei SDK
+      - name: Install Cephei SDK
         working-directory: /tmp
         run: |
-          git clone --depth 1 --branch 2.0 https://github.com/hbang/libcephei.git libcephei
-          cd libcephei
-          make sdk TARGET="${TARGET}" ARCHS="${ARCHS}" RESPRING=0 THEOS_PACKAGE_SCHEME=roothide
+          curl -L --fail --retry 3 https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip -o cephei_sdk.zip
+          rm -rf cephei-sdk
+          mkdir cephei-sdk
+          unzip -q cephei_sdk.zip -d cephei-sdk
+          find cephei-sdk -maxdepth 4 -type d -name '*.framework' -print
+          for framework in Cephei CepheiPrefs; do
+            DIR="$(find cephei-sdk -type d -name "$framework.framework" -print -quit)"
+            test -n "$DIR"
+            cp -a "$DIR" "${THEOS}/vendor/lib/iphone/rootless/"
+          done
           test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
           test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
-          mkdir -p "${THEOS}/vendor/lib/iphone/roothide"
-          cp -a "${THEOS}/vendor/lib/iphone/rootless/." "${THEOS}/vendor/lib/iphone/roothide/"
+
       - name: Verify Theos dependencies
         run: |
           test -d "${THEOS}/vendor/lib/iphone/roothide/Alderis.framework"
