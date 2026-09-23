@@ -42,6 +42,7 @@ typedef NS_ENUM(NSInteger, IRIndicatorType) {
 
 @interface SBRecordingIndicatorViewController : UIViewController <DNDRemoteServiceConnectionEventListener>
   //Indicators
+-(void)ir_setupIndicatorsIfNeeded;
 -(NSInteger)ir_spacingMultiplierForIndicatorType:(IRIndicatorType)indicatorType;
 -(void)ir_updateIndicators;
 -(void)ir_updateIndicatorForFlashlightState:(NSNotification *)notification;
