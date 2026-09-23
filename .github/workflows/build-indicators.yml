@@ -25,7 +25,7 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
       THEOS: ${{ github.workspace }}/theos
-      TARGET: iphone:clang:17.0:15.0
+      TARGET: iphone:clang:17.5:15.0
       ARCHS: arm64e
       THEOS_PACKAGE_SCHEME: roothide
 
@@ -56,15 +56,15 @@ jobs:
           path: theos
           submodules: recursive
 
-      - name: Install iOS 17.0 SDK into RootHide Theos
+      - name: Install Tonwalter iOS 17.5 SDK
         env:
           THEOS: ${{ github.workspace }}/theos
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          cd "${THEOS}"
-          ./bin/install-sdk iPhoneOS17.0
-          test -d "${THEOS}/sdks/iPhoneOS17.0.sdk"
-          test -f "${THEOS}/sdks/iPhoneOS17.0.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
+          git clone --depth 1 https://github.com/Tonwalter888/iOS-SDKs.git /tmp/ios-sdks
+          test -d /tmp/ios-sdks/iPhoneOS17.5.sdk
+          rm -rf "${THEOS}/sdks/iPhoneOS17.5.sdk"
+          cp -a /tmp/ios-sdks/iPhoneOS17.5.sdk "${THEOS}/sdks/iPhoneOS17.5.sdk"
+          test -f "${THEOS}/sdks/iPhoneOS17.5.sdk/System/Library/PrivateFrameworks/Preferences.framework/Preferences.tbd"
           echo "THEOS=${THEOS}" >> "${GITHUB_ENV}"
 
       - name: Build libDeusPrefs SDK
