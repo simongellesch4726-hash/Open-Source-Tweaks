@@ -113,7 +113,7 @@
         [dndIndicator.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor constant:((self.view.bounds.size.height / 2) - center.y) * -1],
 
         [dndIndicator.widthAnchor constraintEqualToConstant:0],
-        [dndIndicator.heightAnchor constraintEqualToConstant:0],
+        [dndIndicator.heightAnchor constraintEqualToConstant:0]
       ]];
     }
   }
