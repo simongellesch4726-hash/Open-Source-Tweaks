@@ -79,6 +79,8 @@ jobs:
           COLORPICKER="$(find "${THEOS}" -path "*/libcolorpicker.dylib" -print -quit)"
           cp "${COLORPICKER}" "${THEOS}/lib/libcolorpicker.dylib"
           test -f "${THEOS}/lib/libcolorpicker.dylib"
+          mkdir -p "${THEOS}/vendor/lib/iphone/roothide"
+          cp -a "${THEOS}/vendor/lib/iphone/rootless/." "${THEOS}/vendor/lib/iphone/roothide/"
 
       - name: Build Cephei SDK
         working-directory: /tmp
@@ -91,11 +93,15 @@ jobs:
             RESPRING=0
           test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
           test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
+          mkdir -p "${THEOS}/vendor/lib/iphone/roothide"
+          cp -a "${THEOS}/vendor/lib/iphone/rootless/." "${THEOS}/vendor/lib/iphone/roothide/"
 
       - name: Verify Theos dependencies
         run: |
-          find "${THEOS}/vendor/lib" -maxdepth 5 -type d \
-            \( -name "Alderis.framework" -o -name "Cephei.framework" -o -name "CepheiPrefs.framework" \) -print
+          test -d "${THEOS}/vendor/lib/iphone/roothide/Alderis.framework"
+          test -d "${THEOS}/vendor/lib/iphone/roothide/Cephei.framework"
+          test -d "${THEOS}/vendor/lib/iphone/roothide/CepheiPrefs.framework"
+          find "${THEOS}/vendor/lib/iphone/roothide" -maxdepth 1 -mindepth 1 -print
           test -f "${THEOS}/lib/libDeusPrefs.dylib"
           test -f "${THEOS}/lib/libcolorpicker.dylib"
 
