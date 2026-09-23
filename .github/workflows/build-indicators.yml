@@ -64,14 +64,6 @@ jobs:
           make install-to-theos THEOS="${THEOS}" TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME=roothide
           test -f "${THEOS}/lib/libDeusPrefs.dylib"
           test -f "${THEOS}/include/libDeusPrefs.h"
-      - name: Install cyan and tbd
-        run: |
-          pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
-          curl -L --fail --retry 3 https://github.com/inoahdev/tbd/releases/download/2.2/tbd-mac -o /usr/local/bin/tbd
-          chmod +x /usr/local/bin/tbd
-          command -v cyan
-          command -v tbd
-          tbd --help >/dev/null
       - name: Install Alderis SDK and libcolorpicker
         working-directory: /tmp
         run: |
@@ -111,11 +103,13 @@ jobs:
 
       - name: Verify Theos dependencies
         run: |
-          test -d "${THEOS}/vendor/lib/iphone/roothide/Alderis.framework"
-          test -d "${THEOS}/vendor/lib/iphone/roothide/Cephei.framework"
-          test -d "${THEOS}/vendor/lib/iphone/roothide/CepheiPrefs.framework"
+          test -d "${THEOS}/vendor/lib/iphone/rootless/Alderis.framework"
+          test -d "${THEOS}/vendor/lib/iphone/rootless/Cephei.framework"
+          test -d "${THEOS}/vendor/lib/iphone/rootless/CepheiPrefs.framework"
           test -f "${THEOS}/lib/libDeusPrefs.dylib"
           test -f "${THEOS}/lib/libcolorpicker.dylib"
+          lipo -archs "${THEOS}/lib/libDeusPrefs.dylib" | grep -qw arm64e
+          lipo -archs "${THEOS}/lib/libcolorpicker.dylib" | grep -qw arm64e
       - name: Build Indicators
         working-directory: Indicators
         run: |
