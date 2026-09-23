@@ -52,27 +52,6 @@ jobs:
           echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
           echo "$GITHUB_WORKSPACE/theos/bin" >> "$GITHUB_PATH"
 
-      - name: Install Cephei + CepheiPrefs into Theos vendor
-        run: |
-          set -e
-          rm -rf /tmp/libcephei
-          git clone --depth=1 https://github.com/hbang/libcephei.git /tmp/libcephei
-          cd /tmp/libcephei
-          make clean all FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide THEOS="$THEOS" TARGET="$TARGET" ARCHS="$ARCHS" || make clean all FINALPACKAGE=1 THEOS="$THEOS"
-          mkdir -p "$THEOS/vendor/lib/iphone/roothide"
-          mkdir -p "$THEOS/vendor/include"
-          find .theos/obj -maxdepth 4 -name "*.framework" -type d | while read fw; do
-            cp -R "$fw" "$THEOS/vendor/lib/iphone/roothide/"
-          done
-          for name in Cephei CepheiPrefs; do
-            if [ -d "$name" ]; then
-              mkdir -p "$THEOS/vendor/include/$name"
-              find "$name" -maxdepth 2 -name "*.h" -exec cp {} "$THEOS/vendor/include/$name/" \; || true
-            fi
-          done
-          ls -la "$THEOS/vendor/lib/iphone/roothide/" | head -50
-          ls -la "$THEOS/vendor/include/" | head -50
-
       - name: Set Theos path from cache
         if: steps.theos-cache.outputs.cache-hit == 'true'
         run: |
