@@ -54,8 +54,6 @@
     }
 
     recordingIndicatorViewController = self;
-        //Grab a reference to the view controller
-      recordingIndicatorViewController = self;
 
         //Add observer for flashlight level notification, this is not called when the camera flash is turn on
         //Add observer for vpn connection notification
@@ -115,8 +113,9 @@
         [dndIndicator.widthAnchor constraintEqualToConstant:0],
         [dndIndicator.heightAnchor constraintEqualToConstant:0]
       ]];
+  }
 
-    // DND state changes aren't sent after a respring, so we check once
+  // DND state changes aren't sent after a respring, so we check once
   -(void)viewDidAppear:(BOOL)arg1 {
     %orig;
 
