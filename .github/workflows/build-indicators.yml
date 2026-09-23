@@ -79,22 +79,19 @@ jobs:
           rm -rf alderis-sdk
           mkdir alderis-sdk
           unzip -q alderis_sdk.zip -d alderis-sdk
-          find alderis-sdk -maxdepth 4 -type f -print
           ALDERIS_DIR="$(find alderis-sdk -type d -name 'Alderis.framework' -print -quit)"
           test -n "$ALDERIS_DIR"
           mkdir -p "${THEOS}/vendor/lib/iphone/rootless"
           cp -a "$ALDERIS_DIR" "${THEOS}/vendor/lib/iphone/rootless/"
-          COLORPICKER="$(find alderis-sdk -type f -name 'libcolorpicker.dylib' -print -quit)"
-          if [ -z "$COLORPICKER" ]; then
-            echo "Alderis SDK archive does not contain libcolorpicker.dylib; building lcpshim only."
-            git clone --depth 1 --branch 1.2.2 https://github.com/hbang/Alderis.git Alderis-source
-            cd Alderis-source
-            make package ROOTLESS=1 TARGET="${TARGET}" ARCHS="${ARCHS}" THEOS_PACKAGE_SCHEME=rootless
-            COLORPICKER="$(find .theos -type f -name 'libcolorpicker.dylib' -print -quit)"
-          fi
+          curl -L --fail --retry 3 https://github.com/hbang/Alderis/releases/download/1.2.2/ws.hbang.alderis_1.2.2_iphoneos-arm64.deb -o alderis.deb
+          rm -rf alderis-pkg
+          mkdir alderis-pkg
+          dpkg-deb -x alderis.deb alderis-pkg
+          COLORPICKER="$(find alderis-pkg -type f -name 'libcolorpicker.dylib' -print -quit)"
           test -n "$COLORPICKER"
           cp "$COLORPICKER" "${THEOS}/lib/libcolorpicker.dylib"
           test -f "${THEOS}/lib/libcolorpicker.dylib"
+          lipo -archs "${THEOS}/lib/libcolorpicker.dylib" | grep -qw arm64e
 
       - name: Build Cephei SDK
         working-directory: /tmp
