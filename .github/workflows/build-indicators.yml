@@ -118,6 +118,20 @@ jobs:
           test -f "$THEOS/lib/libcolorpicker.dylib"
           lipo -archs "$THEOS/lib/libcolorpicker.dylib" | grep -qw arm64e
 
+      - name: Build Cephei into Theos vendor
+        run: |
+          set -e
+          rm -rf /tmp/libcephei
+          git clone --depth=1 https://github.com/hbang/libcephei.git /tmp/libcephei
+          cd /tmp/libcephei
+          make clean all FINALPACKAGE=1 THEOS="$THEOS" ARCHS="arm64 arm64e"
+          mkdir -p "$THEOS/vendor/lib/iphone/roothide"
+          find .theos -name "*.framework" -type d | while read fw; do
+            echo "Copying $fw"
+            cp -R "$fw" "$THEOS/vendor/lib/iphone/roothide/"
+          done
+          ls -la "$THEOS/vendor/lib/iphone/roothide/"
+
       - name: Install Cephei SDK
         working-directory: /tmp
         run: |
