@@ -7,6 +7,7 @@
  */
 #import <UIKit/UIKit.h>
 #import <Cephei/HBPreferences.h>
+#import <libcolorpicker.h>
 @import Alderis;
 #import "Indicators.h"
 #import "HBLog.h"
