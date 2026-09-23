@@ -115,7 +115,6 @@
         [dndIndicator.widthAnchor constraintEqualToConstant:0],
         [dndIndicator.heightAnchor constraintEqualToConstant:0]
       ]];
-    }
 
     // DND state changes aren't sent after a respring, so we check once
   -(void)viewDidAppear:(BOOL)arg1 {
