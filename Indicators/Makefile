@@ -2,8 +2,6 @@
 export THEOS_PACKAGE_SCHEME = roothide
 
 # Do NOT let Logos turn warnings into fatal errors
-Indicators_CFLAGS     += -Wno-error
-Indicators_LOGOSFLAGS += -Wno-error
 
 ifdef SIM
 	export ARCHS = x86_64
@@ -21,7 +19,8 @@ Indicators_FILES = $(wildcard *.x)
 Indicators_LIBRARIES = colorpicker
 Indicators_PRIVATE_FRAMEWORKS = CoreMedia
 Indicators_EXTRA_FRAMEWORKS += Cephei Alderis
-Indicators_CFLAGS = -fobjc-arc
+Indicators_CFLAGS = -fobjc-arc -Wno-error
+Indicators_LOGOSFLAGS += -Wno-error
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += indicatorsprefs
