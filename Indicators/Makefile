@@ -20,7 +20,6 @@ Indicators_LIBRARIES = colorpicker
 Indicators_PRIVATE_FRAMEWORKS = CoreMedia
 Indicators_EXTRA_FRAMEWORKS += Cephei Alderis
 Indicators_CFLAGS = -fobjc-arc -Wno-error
-Indicators_LOGOSFLAGS += -Wno-error
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += indicatorsprefs
