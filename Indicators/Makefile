@@ -5,7 +5,7 @@ else
 	export ARCHS = arm64e
 endif
 
-INSTALL_TARGET_PROCESSES = Preferences #SpringBoard
+INSTALL_TARGET_PROCESSES = SpringBoard Preferences
 
 include $(THEOS)/makefiles/common.mk
 
@@ -27,3 +27,5 @@ sim::
 	@cp -R $(TWEAK_NAME).plist /opt/simject/
 	@echo "Restarting simulator..."
 	@$(RESPRING)
+
+# Build with THEOS_PACKAGE_SCHEME=roothide for RootHide packaging.
