@@ -8,7 +8,6 @@
 #import <UIKit/UIKit.h>
 #import <Cephei/HBPreferences.h>
 @import Alderis;
-#import "AlderisColorPicker.h"
 #import "Indicators.h"
 #import "HBLog.h"
 
