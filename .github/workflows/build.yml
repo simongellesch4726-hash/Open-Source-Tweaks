@@ -1,0 +1,74 @@
+name: Build Indicators (roothide 17.0)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    env:
+      THEOS: ${{ github.workspace }}/theos
+      TARGET: iphone:clang:latest:15.0
+      ARCHS: arm64e arm64
+      THEOS_PACKAGE_SCHEME: roothide
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache Theos
+        id: theos-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/theos
+          key: ${{ runner.os }}-roothide-theos-v1
+
+      - name: Install roothide/theos
+        if: steps.theos-cache.outputs.cache-hit != 'true'
+        run: |
+          export THEOS=${{ github.workspace }}/theos
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
+
+      - name: Sanity check Theos
+        run: |
+          echo "THEOS=$THEOS"
+          ls -la "$THEOS" | head
+          "$THEOS/bin/theos" --version || true
+
+      - name: Build Indicators
+        working-directory: ./Indicators
+        run: |
+          make clean
+          make package \
+            FINALPACKAGE=1 \
+            THEOS="$THEOS" \
+            TARGET="$TARGET" \
+            ARCHS="$ARCHS" \
+            THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME" \
+            STRIP=1 \
+            DEBUG=0
+
+      - name: Locate Package
+        id: find_package
+        working-directory: ./Indicators
+        run: |
+          DEB=$(find ./packages -maxdepth 1 -type f -name '*.deb' | head -n 1)
+          if [ -z "$DEB" ]; then
+            echo "No .deb found"; exit 1
+          fi
+          echo "deb_path=$DEB" >> "$GITHUB_OUTPUT"
+          echo "Found package: $DEB"
+
+      - name: Upload Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Indicators-roothide
+          path: ${{ steps.find_package.outputs.deb_path }}
+          if-no-files-found: error
