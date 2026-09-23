@@ -2,7 +2,7 @@ ifdef SIM
 	export ARCHS = x86_64
 	TARGET = simulator:clang:latest:8.0
 else
-	export ARCHS = arm64 arm64e
+	export ARCHS = arm64e
 endif
 
 INSTALL_TARGET_PROCESSES = Preferences #SpringBoard
