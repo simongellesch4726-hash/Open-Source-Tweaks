@@ -34,17 +34,11 @@
   SBRecordingIndicatorView *dndIndicator;
 
 %hook SBRecordingIndicatorViewController
-  // iOS 17 constructs this controller through initForLocation:windowScene:.
-  // Keep all Apple implementation behavior untouched and initialize our views
-  // only after SpringBoard has completed its normal initializer.
-  -(id)initForLocation:(NSInteger)location windowScene:(id)windowScene {
-    id result = %orig(location, windowScene);
-    if(result) {
-      dispatch_async(dispatch_get_main_queue(), ^{
-        [result ir_setupIndicatorsIfNeeded];
-      });
-    }
-    return result;
+  // iOS 17 still calculates the indicator geometry before the recording indicator is displayed.
+  // Initialize our additional indicators after Apple has established _center and _size.
+  -(void)calculateInitialIndicatorPositionAndSize {
+    %orig;
+    [self ir_setupIndicatorsIfNeeded];
   }
 
 %new
