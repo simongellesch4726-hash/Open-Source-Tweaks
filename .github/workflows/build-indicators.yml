@@ -80,6 +80,12 @@ jobs:
           test -f "${THEOS}/lib/libDeusPrefs.dylib"
           test -f "${THEOS}/include/libDeusPrefs.h"
 
+      - name: Install tbd tool
+        run: |
+          pipx install https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
+          command -v tbd
+          tbd --help >/dev/null
+
       - name: Build Alderis SDK and libcolorpicker
         working-directory: /tmp
         run: |
