@@ -1,2 +1,1 @@
-Temporary CI trigger for the Indicators iOS 17 RootHide build. Remove after the verified .deb is produced.
-retry: staging-path-2
+Temporary CI trigger for the Indicators iOS 17 RootHide build. retry: released-alderis
