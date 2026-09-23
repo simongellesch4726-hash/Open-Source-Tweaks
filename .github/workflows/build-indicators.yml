@@ -1,6 +1,9 @@
 name: Build Indicators — iOS 17 RootHide
 
 on:
+  push:
+    branches:
+      - indicators-ios17-roothide
   workflow_dispatch:
 
 permissions:
