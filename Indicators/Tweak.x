@@ -47,7 +47,13 @@
       [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(ir_updateIndicatorForVPNState:) name:@"SBVPNConnectionChangedNotification" object:nil];
 
         //Add state listener for DND
-      [[%c(DNDRemoteServiceConnection) sharedInstance] addEventListener:self];
+      Class dndConnectionClass = %c(DNDRemoteServiceConnection);
+      if(dndConnectionClass && [dndConnectionClass respondsToSelector:@selector(sharedInstance)]) {
+        DNDRemoteServiceConnection *connection = [dndConnectionClass sharedInstance];
+        if(connection && [connection respondsToSelector:@selector(addEventListener:)]) {
+          [connection addEventListener:self];
+        }
+      }
 
         //Create flashlight indicator
       flashlightIndicator = [[%c(SBRecordingIndicatorView) alloc] init];
@@ -100,8 +106,21 @@
   -(void)viewDidAppear:(BOOL)arg1 {
     %orig;
 
-    DNDRequestDetails *requestDetails = [%c(DNDRequestDetails) detailsRepresentingNowWithClientIdentifier:@"com.apple.donotdisturb.control-center.module"];
-    [[%c(DNDRemoteServiceConnection) sharedInstance] queryStateWithRequestDetails:requestDetails completionHandler:^(DNDState *state, NSError *error) {
+    Class requestDetailsClass = %c(DNDRequestDetails);
+    Class dndConnectionClass = %c(DNDRemoteServiceConnection);
+    if(!requestDetailsClass || !dndConnectionClass ||
+       ![requestDetailsClass respondsToSelector:@selector(detailsRepresentingNowWithClientIdentifier:)] ||
+       ![dndConnectionClass respondsToSelector:@selector(sharedInstance)]) {
+      return;
+    }
+
+    DNDRequestDetails *requestDetails = [requestDetailsClass detailsRepresentingNowWithClientIdentifier:@"com.apple.donotdisturb.control-center.module"];
+    DNDRemoteServiceConnection *connection = [dndConnectionClass sharedInstance];
+    if(!connection || ![connection respondsToSelector:@selector(queryStateWithRequestDetails:completionHandler:)]) {
+      return;
+    }
+
+    [connection queryStateWithRequestDetails:requestDetails completionHandler:^(DNDState *state, NSError *error) {
       if(!error) {
         if([state isActive]) {
           CGFloat size = [[self valueForKey:@"_size"] floatValue];
@@ -230,7 +249,7 @@
       //Create animators
     dispatch_async(dispatch_get_main_queue(), ^{
         //Scale to large dot
-      self.overScaleAnimation = (self.overScaleAnimation) ?: [[UIViewPropertyAnimator alloc] initWithDuration:0.7 curve:UIViewAnimationCurveEaseInOut animations:nil];
+      self.overScaleAnimation = [[UIViewPropertyAnimator alloc] initWithDuration:0.7 curve:UIViewAnimationCurveEaseInOut animations:nil];
       [self.overScaleAnimation addAnimations:^{
         [self setNeedsLayout];
         self.alpha = 1.0;
@@ -246,7 +265,7 @@
       }];
 
         //Scale to average size dot
-      self.normalScaleAnimation = (self.normalScaleAnimation) ?: [[UIViewPropertyAnimator alloc] initWithDuration:0.7 curve:UIViewAnimationCurveEaseInOut animations:nil];
+      self.normalScaleAnimation = [[UIViewPropertyAnimator alloc] initWithDuration:0.7 curve:UIViewAnimationCurveEaseInOut animations:nil];
       [self.normalScaleAnimation addAnimations:^{
         [self setNeedsLayout];
         self.alpha = 1.0;
@@ -262,7 +281,7 @@
       }];
 
         //Scale to rest size
-      self.restScaleAnimation = (self.restScaleAnimation) ?: [[UIViewPropertyAnimator alloc] initWithDuration:2.0 curve:UIViewAnimationCurveEaseInOut animations:nil];
+      self.restScaleAnimation = [[UIViewPropertyAnimator alloc] initWithDuration:2.0 curve:UIViewAnimationCurveEaseInOut animations:nil];
       [self.restScaleAnimation addAnimations:^{
         [self setNeedsLayout];
         self.alpha = 0.8;
@@ -286,7 +305,7 @@
 
     dispatch_async(dispatch_get_main_queue(), ^{
         //Scale to 0
-      self.zeroScaleAnimation = (self.zeroScaleAnimation) ?: [[UIViewPropertyAnimator alloc] initWithDuration:1.0 curve:UIViewAnimationCurveEaseInOut animations:nil];
+      self.zeroScaleAnimation = [[UIViewPropertyAnimator alloc] initWithDuration:1.0 curve:UIViewAnimationCurveEaseInOut animations:nil];
       [self.zeroScaleAnimation addAnimations:^{
         [self setNeedsLayout];
         self.alpha = 0;
