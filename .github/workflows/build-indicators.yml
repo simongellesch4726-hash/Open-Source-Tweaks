@@ -2,12 +2,6 @@ name: Build Indicators (iOS 17 RootHide)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - indicators-ios17-roothide
-    paths:
-      - "Indicators/**"
-      - ".github/workflows/build-indicators.yml"
 
 permissions:
   contents: read
