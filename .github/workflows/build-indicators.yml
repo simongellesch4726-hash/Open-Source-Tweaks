@@ -118,18 +118,22 @@ jobs:
           test -f "$THEOS/lib/libcolorpicker.dylib"
           lipo -archs "$THEOS/lib/libcolorpicker.dylib" | grep -qw arm64e
 
-      - name: Build Cephei into Theos vendor
+      - name: Install Cephei from prebuilt release
         run: |
           set -e
-          rm -rf /tmp/libcephei
-          git clone --depth=1 https://github.com/hbang/libcephei.git /tmp/libcephei
-          cd /tmp/libcephei
-          make clean all FINALPACKAGE=1 THEOS="$THEOS" ARCHS="arm64 arm64e"
+          mkdir -p /tmp/cephei-extract
+          URL=$(curl -fsSL https://api.github.com/repos/hbang/libcephei/releases/latest \
+            | grep -o '"browser_download_url": *"[^"]*iphoneos-arm\\.deb"' \
+            | head -1 | sed 's/.*"\\(http[^"]*\\)"/\\1/')
+          if [ -z "$URL" ]; then
+            echo "Could not find Cephei deb URL"; exit 1
+          fi
+          echo "Downloading: $URL"
+          curl -fL -o /tmp/cephei.deb "$URL"
+          dpkg-deb -x /tmp/cephei.deb /tmp/cephei-extract
           mkdir -p "$THEOS/vendor/lib/iphone/roothide"
-          find .theos -name "*.framework" -type d | while read fw; do
-            echo "Copying $fw"
-            cp -R "$fw" "$THEOS/vendor/lib/iphone/roothide/"
-          done
+          find /tmp/cephei-extract -name "*.framework" -type d -print -exec cp -R {} "$THEOS/vendor/lib/iphone/roothide/" \\;
+          echo "--- Installed frameworks ---"
           ls -la "$THEOS/vendor/lib/iphone/roothide/"
 
       - name: Install Cephei SDK
