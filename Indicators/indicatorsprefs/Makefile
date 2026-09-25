@@ -1,3 +1,4 @@
+indicatorsprefs_CFLAGS += -Wno-incomplete-umbrella
 include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = indicatorsprefs
