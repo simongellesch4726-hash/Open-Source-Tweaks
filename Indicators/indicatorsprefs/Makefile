@@ -1,4 +1,3 @@
-indicatorsprefs_CFLAGS += -Wno-incomplete-umbrella
 include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = indicatorsprefs
@@ -8,6 +7,6 @@ indicatorsprefs_INSTALL_PATH = $(THEOS_PACKAGE_INSTALL_PREFIX)/Library/Preferenc
 indicatorsprefs_FRAMEWORKS = UIKit
 indicatorsprefs_PRIVATE_FRAMEWORKS = Preferences
 indicatorsprefs_EXTRA_FRAMEWORKS = Cephei CepheiPrefs Alderis
-indicatorsprefs_CFLAGS = -fobjc-arc
+indicatorsprefs_CFLAGS = -fobjc-arc -Wno-incomplete-umbrella
 
 include $(THEOS_MAKE_PATH)/bundle.mk
