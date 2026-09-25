@@ -114,20 +114,37 @@ jobs:
       - name: Install Cephei SDK into Theos vendor
         run: |
           set -e
+          # 1. Prebuilt frameworks (binary only, no headers)
           SDK_URL="https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip"
-          echo "Downloading: $SDK_URL"
           curl -fL -o /tmp/cephei_sdk.zip "$SDK_URL"
           mkdir -p /tmp/cephei-sdk
           unzip -q -o /tmp/cephei_sdk.zip -d /tmp/cephei-sdk
-          echo "--- SDK contents ---"
-          find /tmp/cephei-sdk -maxdepth 3 -type d
           mkdir -p "$THEOS/vendor/lib/iphone/roothide"
           find /tmp/cephei-sdk -name "*.framework" -type d | while read fw; do
-            echo "Copying $fw"
             cp -R "$fw" "$THEOS/vendor/lib/iphone/roothide/"
           done
-          echo "--- Installed frameworks ---"
-          ls -la "$THEOS/vendor/lib/iphone/roothide/"
+
+          # 2. Source repo for headers (release .framework bundles ship stripped)
+          rm -rf /tmp/libcephei-src
+          git clone --depth=1 https://github.com/hbang/libcephei.git /tmp/libcephei-src
+
+          # 3. Copy every header from source into the matching framework's Headers dir
+          for fw in Cephei CepheiUI CepheiPrefs; do
+            mkdir -p "$THEOS/vendor/lib/iphone/roothide/$fw.framework/Headers"
+          done
+          find /tmp/libcephei-src -type f -name "*.h" | while read h; do
+            case "$h" in
+              */prefs/*)  cp "$h" "$THEOS/vendor/lib/iphone/roothide/CepheiPrefs.framework/Headers/" ;;
+              */ui/*)     cp "$h" "$THEOS/vendor/lib/iphone/roothide/CepheiUI.framework/Headers/" ;;
+              */Cephei/*) cp "$h" "$THEOS/vendor/lib/iphone/roothide/Cephei.framework/Headers/" ;;
+            esac
+          done
+
+          # 4. Diagnostics
+          echo "--- HBAppearanceSettings.h location in source ---"
+          find /tmp/libcephei-src -name "HBAppearanceSettings.h"
+          echo "--- Headers installed in CepheiPrefs.framework ---"
+          ls -la "$THEOS/vendor/lib/iphone/roothide/CepheiPrefs.framework/Headers/" | head -50
 
       - name: Install Cephei SDK
         working-directory: /tmp
