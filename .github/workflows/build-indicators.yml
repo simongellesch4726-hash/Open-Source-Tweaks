@@ -77,10 +77,7 @@ jobs:
       - name: Install libDeusPrefs
         run: |
           git clone --depth 1 https://github.com/LacertosusRepo/libDeusPrefs.git /tmp/libDeusPrefs
-          make -C /tmp/libDeusPrefs/source install-to-theos \
-            THEOS="$THEOS" \
-            TARGET="$TARGET" \
-            ARCHS="$ARCHS"
+          make -C /tmp/libDeusPrefs/source install-to-theos             THEOS="$THEOS"             TARGET="$TARGET"             ARCHS="$ARCHS"
           test -f "$THEOS/lib/libDeusPrefs.dylib"
           test -f "$THEOS/include/libDeusPrefs.h"
           lipo -archs "$THEOS/lib/libDeusPrefs.dylib" | grep -qw arm64e
@@ -88,9 +85,7 @@ jobs:
       - name: Install Alderis SDK and libcolorpicker
         working-directory: /tmp
         run: |
-          curl -L --fail --retry 3 \
-            https://github.com/hbang/Alderis/releases/download/1.2.0/alderis_sdk_1.2.zip \
-            -o alderis_sdk.zip
+          curl -L --fail --retry 3             https://github.com/hbang/Alderis/releases/download/1.2.0/alderis_sdk_1.2.zip             -o alderis_sdk.zip
 
           rm -rf alderis-sdk
           mkdir alderis-sdk
@@ -103,9 +98,7 @@ jobs:
           rm -rf "$THEOS/vendor/lib/iphone/rootless/Alderis.framework"
           cp -a "$ALDERIS_DIR" "$THEOS/vendor/lib/iphone/rootless/"
 
-          curl -L --fail --retry 3 \
-            https://github.com/hbang/Alderis/releases/download/1.2.2/ws.hbang.alderis_1.2.2_iphoneos-arm64.deb \
-            -o alderis.deb
+          curl -L --fail --retry 3             https://github.com/hbang/Alderis/releases/download/1.2.2/ws.hbang.alderis_1.2.2_iphoneos-arm64.deb             -o alderis.deb
 
           rm -rf alderis-pkg
           mkdir alderis-pkg
@@ -118,30 +111,28 @@ jobs:
           test -f "$THEOS/lib/libcolorpicker.dylib"
           lipo -archs "$THEOS/lib/libcolorpicker.dylib" | grep -qw arm64e
 
-      - name: Install Cephei from prebuilt release
+      - name: Install Cephei SDK into Theos vendor
         run: |
           set -e
-          mkdir -p /tmp/cephei-extract
-          URL=$(curl -fsSL https://api.github.com/repos/hbang/libcephei/releases/latest \
-            | grep -o '"browser_download_url": *"[^"]*iphoneos-arm\\.deb"' \
-            | head -1 | sed 's/.*"\\(http[^"]*\\)"/\\1/')
-          if [ -z "$URL" ]; then
-            echo "Could not find Cephei deb URL"; exit 1
-          fi
-          echo "Downloading: $URL"
-          curl -fL -o /tmp/cephei.deb "$URL"
-          dpkg-deb -x /tmp/cephei.deb /tmp/cephei-extract
+          SDK_URL="https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip"
+          echo "Downloading: $SDK_URL"
+          curl -fL -o /tmp/cephei_sdk.zip "$SDK_URL"
+          mkdir -p /tmp/cephei-sdk
+          unzip -q -o /tmp/cephei_sdk.zip -d /tmp/cephei-sdk
+          echo "--- SDK contents ---"
+          find /tmp/cephei-sdk -maxdepth 3 -type d
           mkdir -p "$THEOS/vendor/lib/iphone/roothide"
-          find /tmp/cephei-extract -name "*.framework" -type d -print -exec cp -R {} "$THEOS/vendor/lib/iphone/roothide/" \\;
+          find /tmp/cephei-sdk -name "*.framework" -type d | while read fw; do
+            echo "Copying $fw"
+            cp -R "$fw" "$THEOS/vendor/lib/iphone/roothide/"
+          done
           echo "--- Installed frameworks ---"
           ls -la "$THEOS/vendor/lib/iphone/roothide/"
 
       - name: Install Cephei SDK
         working-directory: /tmp
         run: |
-          curl -L --fail --retry 3 \
-            https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip \
-            -o cephei_sdk.zip
+          curl -L --fail --retry 3             https://github.com/hbang/libcephei/releases/download/2.0/cephei_sdk_2.0.zip             -o cephei_sdk.zip
 
           rm -rf cephei-sdk
           mkdir cephei-sdk
@@ -176,12 +167,7 @@ jobs:
         working-directory: Indicators
         run: |
           make clean
-          make package FINALPACKAGE=1 \
-            THEOS="$THEOS" \
-            TARGET="$TARGET" \
-            ARCHS="$ARCHS" \
-            THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME" \
-            STRIP=1
+          make package FINALPACKAGE=1             THEOS="$THEOS"             TARGET="$TARGET"             ARCHS="$ARCHS"             THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME"             STRIP=1
 
           DEB="$(find packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
           test -n "$DEB"
